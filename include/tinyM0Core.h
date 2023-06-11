@@ -5,7 +5,7 @@ typedef void (*tinyProc_t)(void);
 
 typedef enum{
     NEW,
-    RUN,
+    RUN
 } tinyThreadState_t;
 
 typedef struct{
