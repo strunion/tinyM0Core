@@ -1,22 +1,22 @@
 #pragma once
 #include <stdint.h>
 
+#define MAX_THREADS 5
+
 typedef void (*tinyProc_t)(void);
 
 typedef enum{
+    EMPTY,
     NEW,
     RUN
 } tinyThreadState_t;
 
 typedef struct{
     tinyProc_t proc;
-    uint8_t* stack;
-} tinyThreadConfig_t;
-
-typedef struct{
+    void* stackPointer;
     tinyThreadState_t state;
-    uint32_t stackPointer;
 } tinyThread_t;
 
 void osStart(void);
+int osCreateThread(tinyProc_t proc, uint32_t* stack, uint32_t stackSize);
 void yield(void);
