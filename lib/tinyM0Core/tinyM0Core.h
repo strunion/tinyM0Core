@@ -7,13 +7,20 @@
 typedef void (*tinyProc_t)(void);
 
 typedef enum{
-    EMPTY,
-    SLEEP,
-    RUN,
-    DELAY,
-    WAIT_MATCH,
-    WAIT_RANGE
+    OS_EMPTY,
+    OS_SLEEP,
+    OS_RUN,
+    OS_DELAY,
+    OS_WAIT_MATCH,
+    OS_WAIT_RANGE
 } tinyThreadState_t;
+
+enum {
+    OS_NULL_STACK_PTR_ERR = -1,
+    OS_STACK_SIZE_ERR = -2,
+    OS_STACK_ALIGN_ERR = -3,
+    OS_TOO_MANY_THREADS_ERR = -4
+};
 
 typedef struct{
     union {
@@ -24,7 +31,7 @@ typedef struct{
     };
     union {
         uint32_t arg2;
-        uint32_t minVal;
+        uint32_t subtrahend;
         uint32_t mask;
     };
     union {

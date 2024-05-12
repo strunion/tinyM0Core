@@ -1,7 +1,13 @@
 #include "tinyM0Core.h"
 #include "stm32f0xx.h"
+#include "stddef.h"
 
 extern volatile uint32_t tick;
+
+#define NUM_OF_SYSTEM_REGS                                  12
+#define REG_SIZE                                            4
+#define MINIMUM_STACK_SIZE                                  (NUM_OF_SYSTEM_REGS * REG_SIZE)
+#define MAGIC_SAUCE                                         0x55555555
 
 tinyThread_t tinyThread[MAX_THREADS];
 uint32_t curThread = 0;
@@ -54,8 +60,6 @@ void yield(){
     popCtx();
 }
 
-void* toThread(void* stack);
-
 void goToThread(int threadId){
     curThread = threadId;
     tinyThread[threadId].stackPointer = toThread(tinyThread[threadId].stackPointer);
@@ -65,25 +69,21 @@ void osStart(void){
     while(1){
         for(int i = 0; i < MAX_THREADS; i++){
             switch(tinyThread[i].state){
-                case EMPTY: break;
-                case SLEEP: break;
-                case RUN:
+                case OS_EMPTY: break;
+                case OS_SLEEP: break;
+                case OS_RUN:
                     goToThread(i);
                     break;
-                case DELAY:
+                case OS_DELAY:
                     if((int32_t)(tick - tinyThread[i].tim) > 0)
                         goToThread(i);
                     break;
-                case WAIT_MATCH:
+                case OS_WAIT_MATCH:
                     if((*tinyThread[i].uPtr & tinyThread[i].mask) == tinyThread[i].match)
                         goToThread(i);
                     break;
-                case WAIT_RANGE:
-                    if((tinyThread[i].minVal < tinyThread[i].maxVal) ?
-                       (*tinyThread[i].uPtr >= tinyThread[i].minVal &&
-                       *tinyThread[i].uPtr <= tinyThread[i].maxVal) :
-                       (*tinyThread[i].uPtr > tinyThread[i].minVal ||
-                       *tinyThread[i].uPtr < tinyThread[i].maxVal))
+                case OS_WAIT_RANGE:
+                    if(*tinyThread[i].uPtr - tinyThread[i].subtrahend < tinyThread[i].maxVal)
                         goToThread(i);
                     break;
                 default: break;
@@ -93,39 +93,41 @@ void osStart(void){
 }
 
 int osCreateThread(tinyProc_t proc, uint32_t* stack, uint32_t stackSize){
-    if(stack == 0 || stackSize <= 12*4) return -1;
-    if(stackSize & 0x3) return -2;
-    stackSize /= 4;
+    if(stack == NULL) return OS_NULL_STACK_PTR_ERR;
+    if(stackSize < MINIMUM_STACK_SIZE) return OS_STACK_SIZE_ERR;
+    if(stackSize & 0x3) return OS_STACK_ALIGN_ERR;
+
+    int reg_num = stackSize / REG_SIZE;
 
     int threadId = 0;
     for(; threadId < MAX_THREADS; threadId++)
-        if(tinyThread[threadId].state == EMPTY)
+        if(tinyThread[threadId].state == OS_EMPTY)
             break;
-    if(threadId == MAX_THREADS) return -3;
+    if(threadId == MAX_THREADS) return OS_TOO_MANY_THREADS_ERR;
 
-    for(int i = 0; i < stackSize - 12; i++) stack[i] = 0x55555555;
+    for(int i = 0; i < reg_num - NUM_OF_SYSTEM_REGS; i++) stack[i] = MAGIC_SAUCE;
 
-    stack[stackSize - 1] = (uint32_t)proc;
+    stack[reg_num - 1] = (uint32_t)proc;
 
-    tinyThread[threadId].stackPointer = stack + stackSize - 12;
-    tinyThread[threadId].state = RUN;
+    tinyThread[threadId].stackPointer = stack + reg_num - NUM_OF_SYSTEM_REGS;
+    tinyThread[threadId].state = OS_RUN;
     return threadId;
 }
 
 void osDelay(uint32_t d){
-    tinyThread[curThread].state = DELAY;
+    tinyThread[curThread].state = OS_DELAY;
     tinyThread[curThread].tim = tick + d;
     yield();
 }
 
 void osTim(uint32_t d){
-    tinyThread[curThread].state = DELAY;
+    tinyThread[curThread].state = OS_DELAY;
     tinyThread[curThread].tim = d;
     yield();
 }
 
 void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
-    tinyThread[curThread].state = WAIT_MATCH;
+    tinyThread[curThread].state = OS_WAIT_MATCH;
     tinyThread[curThread].uPtr = p;
     tinyThread[curThread].mask = mask;
     tinyThread[curThread].match = match & mask;
@@ -133,17 +135,17 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
 }
 
 void osWaitRange(uint32_t* p, uint32_t min, uint32_t max){
-    tinyThread[curThread].state = WAIT_RANGE;
+    tinyThread[curThread].state = OS_WAIT_RANGE;
     tinyThread[curThread].uPtr = p;
-    tinyThread[curThread].minVal = min;
-    tinyThread[curThread].maxVal = max;
+    tinyThread[curThread].subtrahend = min;
+    tinyThread[curThread].maxVal = max - min;
     yield();
 }
 
 void osRun(uint8_t t){
-    tinyThread[t].state = RUN;
+    tinyThread[t].state = OS_RUN;
 }
 
 void osStop(uint8_t t){
-    tinyThread[t].state = EMPTY;
+    tinyThread[t].state = OS_EMPTY;
 }
