@@ -10,8 +10,9 @@ typedef volatile uint8_t mutex;
 
 typedef enum{
     OS_EMPTY,
-    OS_SLEEP,
+    OS_READY,
     OS_RUN,
+    OS_SLEEP,
     OS_DELAY,
     OS_WAIT_MATCH,
     OS_WAIT_RANGE
@@ -33,12 +34,12 @@ typedef struct{
     };
     union {
         uint32_t arg2;
-        uint32_t subtrahend;
+        uint32_t min;
         uint32_t mask;
     };
     union {
         uint32_t arg3;
-        uint32_t maxVal;
+        uint32_t shiftedMax;
         uint32_t match;
     };
     void* stackPointer;

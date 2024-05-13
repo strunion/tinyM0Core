@@ -62,16 +62,16 @@ void yield(){
 
 void goToThread(int threadId){
     curThread = threadId;
+    tinyThread[threadId].state = OS_RUN;
     tinyThread[threadId].stackPointer = toThread(tinyThread[threadId].stackPointer);
+    tinyThread[threadId].state = OS_READY;
 }
 
 void osStart(void){
     while(1){
         for(int i = 0; i < MAX_THREADS; i++){
             switch(tinyThread[i].state){
-                case OS_EMPTY: break;
-                case OS_SLEEP: break;
-                case OS_RUN:
+                case OS_READY:
                     goToThread(i);
                     break;
                 case OS_DELAY:
@@ -83,7 +83,7 @@ void osStart(void){
                         goToThread(i);
                     break;
                 case OS_WAIT_RANGE:
-                    if(*tinyThread[i].uPtr - tinyThread[i].subtrahend < tinyThread[i].maxVal)
+                    if((*tinyThread[i].uPtr - tinyThread[i].min) < tinyThread[i].shiftedMax)
                         goToThread(i);
                     break;
                 default: break;
@@ -110,7 +110,7 @@ int osCreateThread(tinyProc_t proc, uint32_t* stack, uint32_t stackSize){
     stack[reg_num - 1] = (uint32_t)proc;
 
     tinyThread[threadId].stackPointer = stack + reg_num - NUM_OF_SYSTEM_REGS;
-    tinyThread[threadId].state = OS_RUN;
+    tinyThread[threadId].state = OS_READY;
     return threadId;
 }
 
@@ -137,17 +137,17 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
 void osWaitRange(uint32_t* p, uint32_t min, uint32_t max){
     tinyThread[curThread].state = OS_WAIT_RANGE;
     tinyThread[curThread].uPtr = p;
-    tinyThread[curThread].subtrahend = min;
-    tinyThread[curThread].maxVal = max - min;
+    tinyThread[curThread].min = min;
+    tinyThread[curThread].shiftedMax = max - min;
     yield();
 }
 
 void osRun(uint8_t t){
-    tinyThread[t].state = OS_RUN;
+    tinyThread[t].state = OS_READY;
 }
 
 void osStop(uint8_t t){
-    tinyThread[t].state = OS_EMPTY;
+    tinyThread[t].state = OS_SLEEP;
 }
 
 void mutexLock(mutex* m){
