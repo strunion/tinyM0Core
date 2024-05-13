@@ -2,7 +2,7 @@
 #include "sysControl.h"
 #include "tinyM0Core.h"
 
-mutex uartM;
+mutex_t uartM;
 
 uint32_t proc1Stack[32];
 __attribute__((noreturn))
@@ -19,10 +19,10 @@ uint32_t proc2Stack[128];
 __attribute__((noreturn))
 void proc2(void){
     while(1){
-        mutexLock(&uartM);
-        xprintf("%016X %020d %020lld %020llu %020llu\n",
-            tick, tick, (int64_t)tick*tick, (uint64_t)tick*tick, (uint64_t)tick*tick*tick);
-        mutexUnlock(&uartM);
+        WITH(&uartM){
+            xprintf("%016X %020d %020lld %020llu %020llu\n",
+                tick, tick, (int64_t)tick*tick, (uint64_t)tick*tick, (uint64_t)tick*tick*tick);
+        }
         yield();
     }
 }
@@ -31,12 +31,12 @@ uint32_t proc3Stack[64];
 __attribute__((noreturn))
 void proc3(void){
     while(1){
-        mutexLock(&uartM);
-        uint32_t regNum = sizeof(proc2Stack) / sizeof(proc2Stack[0]);
-        for(int i = 0; i < regNum; i++)
-            xprintf("%d:%08X\n", regNum - i, proc2Stack[i]);
-        xprintf("\n");
-        mutexUnlock(&uartM);
+        WITH(&uartM){
+            uint32_t regNum = sizeof(proc2Stack) / sizeof(proc2Stack[0]);
+            for(int i = 0; i < regNum; i++)
+                xprintf("%d:%08X\n", regNum - i, proc2Stack[i]);
+            xprintf("\n");
+        }
         osDelay(10000);
     }
 }

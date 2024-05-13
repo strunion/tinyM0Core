@@ -81,7 +81,7 @@ void osStart(void){
                         goToThread(i);
                     break;
                 case OS_WAIT_RANGE:
-                    if((*tinyThread[i].uPtr - tinyThread[i].min) < tinyThread[i].shiftedMax)
+                    if((uint32_t)(*tinyThread[i].uPtr - tinyThread[i].min) < tinyThread[i].shiftedMax)
                         goToThread(i);
                     break;
                 default: break;
@@ -152,11 +152,11 @@ void osStop(uint8_t t){
     tinyThread[t].state = OS_SLEEP;
 }
 
-void mutexLock(mutex* m){
+void mutexLock(mutex_t* m){
     if(*m) osWaitMatch((uint32_t*)m, 1, 0);
     *m = 1;
 }
 
-void mutexUnlock(mutex* m){
+void mutexUnlock(mutex_t* m){
     *m = 0;
 }

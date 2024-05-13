@@ -6,7 +6,9 @@
 
 typedef void (*tinyProc_t)(void);
 
-typedef volatile uint8_t mutex;
+
+#define WITH(mutex) for(int _i_ = (mutexLock(mutex), 0); _i_ == 0; _i_ = (mutexUnlock(mutex), -1))
+typedef volatile uint8_t mutex_t;
 
 typedef enum{
     OS_EMPTY,
@@ -55,5 +57,5 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match);
 void osWaitRange(uint32_t* p, uint32_t min, uint32_t max);
 void osRun(uint8_t t);
 void osStop(uint8_t t);
-void mutexLock(mutex* m);
-void mutexUnlock(mutex* m);
+void mutexLock(mutex_t* m);
+void mutexUnlock(mutex_t* m);
