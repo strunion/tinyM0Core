@@ -151,7 +151,7 @@ void osStop(uint8_t t){
 }
 
 void mutexLock(mutex* m){
-    if(m) osWaitMatch((uint32_t*)m, 1, 0);
+    if(*m) osWaitMatch((uint32_t*)m, 1, 0);
     *m = 1;
 }
 
