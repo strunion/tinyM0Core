@@ -15,25 +15,46 @@ uint32_t curThread = 0;
 __STATIC_FORCEINLINE
 void pushCtx(){//18
     asm (
-        "push {r1-r7,lr}    \n\t"
-        "mov  r1, r8        \n\t"
-        "mov  r2, r9        \n\t"
-        "mov  r3, r10       \n\t"
-        "mov  r4, r11       \n\t"
-        "push {r1-r4}       \n\t"
+        "mov  r0, r8        \n\t"
+        "mov  r1, r9        \n\t"
+        "mov  r2, r10       \n\t"
+        "mov  r3, r11       \n\t"
+        "push {r0-r7,lr}    \n\t"
     );
 }
 
 __STATIC_FORCEINLINE
 void popCtx(){//18
     asm (
-        "pop  {r1-r4}       \n\t"
-        "mov  r8, r1        \n\t"
-        "mov  r9, r2        \n\t"
-        "mov  r10, r3       \n\t"
-        "mov  r11, r4       \n\t"
-        "pop  {r1-r7, pc}   \n\t"
+        "pop  {r0-r7, lr}   \n\t"
+        "mov  r8, r0        \n\t"
+        "mov  r9, r1        \n\t"
+        "mov  r10, r2       \n\t"
+        "mov  r11, r3       \n\t"
+        "bx	  lr            \n\t"
     );
+}
+
+__attribute__((naked)) __attribute__((noinline))
+void yield(){
+    pushCtx();
+    uint32_t *ptr = &tinyThread[curThread].stackPointer;
+    asm (
+        "mrs r0, psp        \n\t"
+        "ldr r1, =ptr       \n\t"
+        "str r0, [r1]       \n\t"
+        ::: "r0", "r1"
+    );
+
+
+
+    asm (
+        "mov r0, #0         \n\t"
+        "msr control, r0    \n\t"
+        "mrs r0, psp        \n\t"
+        ::: "r0"
+    );
+    popCtx();
 }
 
 __attribute__((naked))
@@ -48,21 +69,31 @@ void* toThread(void* stack){
     popCtx();
 }
 
-__attribute__((naked)) __attribute__((noinline))
-void yield(){
-    pushCtx();
-    asm (
-        "mov r0, #0         \n\t"
-        "msr control, r0    \n\t"
-        "mrs r0, psp        \n\t"
-        :::"r0"
-    );
-    popCtx();
-}
-
-void goToThread(int threadId){
-    curThread = threadId;
-    tinyThread[threadId].stackPointer = toThread(tinyThread[threadId].stackPointer);
+tinyThread_t *osNextThread(void) {
+    curThread++;
+    while(1){
+        tinyThread_t *thr = &tinyThread[curThread];
+        switch (thr->state) {
+            case OS_EMPTY: break;
+            case OS_SLEEP: break;
+            case OS_RUN:
+                break;
+            case OS_DELAY:
+                if((int32_t)(tick - thr->tim) > 0)
+                    return thr;
+                break;
+            case OS_WAIT_MATCH:
+                if((*thr->uPtr & thr->mask) == thr->match)
+                    return thr;
+                break;
+            case OS_WAIT_RANGE:
+                if(*thr->uPtr - thr->subtrahend < thr->maxVal)
+                    return thr;
+                break;
+            default: break;
+        }
+        if (++curThread == MAX_THREADS) curThread = 0;
+    }
 }
 
 void osStart(void){
