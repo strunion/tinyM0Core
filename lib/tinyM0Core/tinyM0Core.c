@@ -147,5 +147,10 @@ void osRun(uint8_t t){
 }
 
 void osStop(uint8_t t){
-    tinyThread[t].state = OS_EMPTY;
+    tinyThread[t].state = OS_SLEEP;
+}
+
+void osSelfStop(){
+    tinyThread[curThread].state = OS_SLEEP;
+    yield();
 }

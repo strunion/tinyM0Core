@@ -52,3 +52,4 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match);
 void osWaitRange(uint32_t* p, uint32_t min, uint32_t max);
 void osRun(uint8_t t);
 void osStop(uint8_t t);
+void osSelfStop();
