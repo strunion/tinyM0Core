@@ -2,7 +2,10 @@
 #include "sysControl.h"
 #include "tinyM0Core.h"
 
+mutex uartM;
+
 uint32_t proc1Stack[32];
+__attribute__((noreturn))
 void proc1(void){
     while(1){
         GPIOA->BSRR = GPIO_BSRR_BS_4;
@@ -12,20 +15,28 @@ void proc1(void){
     }
 }
 
-uint32_t proc2Stack[64];
+uint32_t proc2Stack[128];
+__attribute__((noreturn))
 void proc2(void){
     while(1){
-        xprintf("%d\n", tick);
+        mutexLock(&uartM);
+        xprintf("%016X %020d %020lld %020llu %020llu\n",
+            tick, tick, (int64_t)tick*tick, (uint64_t)tick*tick, (uint64_t)tick*tick*tick);
+        mutexUnlock(&uartM);
         yield();
     }
 }
 
 uint32_t proc3Stack[64];
+__attribute__((noreturn))
 void proc3(void){
     while(1){
-        for(int i = 0; i < sizeof(proc2Stack) / sizeof(proc2Stack[0]); i++)
-            xprintf("%d:%08X\n", i, proc2Stack[i]);
+        mutexLock(&uartM);
+        uint32_t regNum = sizeof(proc2Stack) / sizeof(proc2Stack[0]);
+        for(int i = 0; i < regNum; i++)
+            xprintf("%d:%08X\n", regNum - i, proc2Stack[i]);
         xprintf("\n");
+        mutexUnlock(&uartM);
         osDelay(10000);
     }
 }

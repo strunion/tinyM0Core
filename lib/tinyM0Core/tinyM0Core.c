@@ -4,7 +4,7 @@
 
 extern volatile uint32_t tick;
 
-#define NUM_OF_SYSTEM_REGS                                  12
+#define NUM_OF_SYSTEM_REGS                                  9
 #define REG_SIZE                                            4
 #define MINIMUM_STACK_SIZE                                  (NUM_OF_SYSTEM_REGS * REG_SIZE)
 #define MAGIC_SAUCE                                         0x55555555
@@ -15,24 +15,24 @@ uint32_t curThread = 0;
 __STATIC_FORCEINLINE
 void pushCtx(){//18
     asm (
-        "push {r1-r7,lr}    \n\t"
-        "mov  r1, r8        \n\t"
-        "mov  r2, r9        \n\t"
-        "mov  r3, r10       \n\t"
-        "mov  r4, r11       \n\t"
-        "push {r1-r4}       \n\t"
+        "push {r4-r7,lr}    \n\t"
+        "mov  r4, r8        \n\t"
+        "mov  r5, r9        \n\t"
+        "mov  r6, r10       \n\t"
+        "mov  r7, r11       \n\t"
+        "push {r4-r7}       \n\t"
     );
 }
 
 __STATIC_FORCEINLINE
 void popCtx(){//18
     asm (
-        "pop  {r1-r4}       \n\t"
-        "mov  r8, r1        \n\t"
-        "mov  r9, r2        \n\t"
-        "mov  r10, r3       \n\t"
-        "mov  r11, r4       \n\t"
-        "pop  {r1-r7, pc}   \n\t"
+        "pop  {r4-r7}       \n\t"
+        "mov  r8, r4        \n\t"
+        "mov  r9, r5        \n\t"
+        "mov  r10, r6       \n\t"
+        "mov  r11, r7       \n\t"
+        "pop  {r4-r7, pc}   \n\t"
     );
 }
 
@@ -148,4 +148,13 @@ void osRun(uint8_t t){
 
 void osStop(uint8_t t){
     tinyThread[t].state = OS_EMPTY;
+}
+
+void mutexLock(mutex* m){
+    if(m) osWaitMatch((uint32_t*)m, 1, 0);
+    *m = 1;
+}
+
+void mutexUnlock(mutex* m){
+    *m = 0;
 }
