@@ -60,7 +60,7 @@ void yield(){
     popCtx();
 }
 
-void goToThread(int threadId){
+static void goToThread(int threadId){
     curThread = threadId;
     tinyThread[threadId].stackPointer = toThread(tinyThread[threadId].stackPointer);
 }
@@ -89,7 +89,7 @@ void osStart(void){
 int osCreateThread(tinyProc_t proc, uint32_t* stack, uint32_t stackSize){
     if(stack == NULL) return OS_NULL_STACK_PTR_ERR;
     if(stackSize < MINIMUM_STACK_SIZE) return OS_STACK_SIZE_ERR;
-    if(stackSize & 0x3) return OS_STACK_ALIGN_ERR;
+    if((stackSize & 0x3) || ((uint32_t)stack & 0x3)) return OS_STACK_ALIGN_ERR;
 
     int reg_num = stackSize / REG_SIZE;
 
@@ -143,11 +143,19 @@ void osThreadStop(uint8_t t){
     tinyThread[t].state = OS_SLEEP;
 }
 
-void mutexLock(mutex_t* m){
-    if(*m) osWaitMatch((uint32_t*)m, 1, 0);
+void mutexLock(mutex_t* m) {
+    __disable_irq();
+    if (*m) {
+        __enable_irq();
+        osWaitMatch((uint32_t*)m, 1, 0);
+        __disable_irq();
+    }
     *m = 1;
+    __enable_irq();
 }
 
 void mutexUnlock(mutex_t* m){
+    __disable_irq();
     *m = 0;
+    __enable_irq();
 }
