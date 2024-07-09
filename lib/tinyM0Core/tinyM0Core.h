@@ -16,8 +16,7 @@ typedef enum{
     OS_RUN,
     OS_SLEEP,
     OS_DELAY,
-    OS_WAIT_MATCH,
-    OS_WAIT_RANGE
+    OS_WAIT_MATCH
 } tinyThreadState_t;
 
 enum {
@@ -36,12 +35,10 @@ typedef struct{
     };
     union {
         uint32_t arg2;
-        uint32_t min;
         uint32_t mask;
     };
     union {
         uint32_t arg3;
-        uint32_t shiftedMax;
         uint32_t match;
     };
     void* stackPointer;
@@ -54,7 +51,6 @@ void yield();
 void osDelay(uint32_t d);
 void osTim(uint32_t d);
 void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match);
-void osWaitRange(uint32_t* p, uint32_t min, uint32_t max);
 void osRun(uint8_t t);
 void osStop(uint8_t t);
 void mutexLock(mutex_t* m);

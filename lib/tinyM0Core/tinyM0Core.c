@@ -80,10 +80,6 @@ void osStart(void){
                     if((*tinyThread[i].uPtr & tinyThread[i].mask) == tinyThread[i].match)
                         goToThread(i);
                     break;
-                case OS_WAIT_RANGE:
-                    if((uint32_t)(*tinyThread[i].uPtr - tinyThread[i].min) < tinyThread[i].shiftedMax)
-                        goToThread(i);
-                    break;
                 default: break;
             }
         }
@@ -131,15 +127,6 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
     tinyThread[curThread].uPtr = p;
     tinyThread[curThread].mask = mask;
     tinyThread[curThread].match = match & mask;
-    yield();
-    tinyThread[curThread].state = OS_RUN;
-}
-
-void osWaitRange(uint32_t* p, uint32_t min, uint32_t max){
-    tinyThread[curThread].state = OS_WAIT_RANGE;
-    tinyThread[curThread].uPtr = p;
-    tinyThread[curThread].min = min;
-    tinyThread[curThread].shiftedMax = max - min;
     yield();
     tinyThread[curThread].state = OS_RUN;
 }
