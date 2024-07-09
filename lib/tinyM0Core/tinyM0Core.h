@@ -16,7 +16,8 @@ typedef enum{
     OS_RUN,
     OS_SLEEP,
     OS_DELAY,
-    OS_WAIT_MATCH
+    OS_WAIT_MATCH,
+    OS_WAIT_MATCH_OR_DELAY
 } tinyThreadState_t;
 
 enum {
@@ -26,10 +27,18 @@ enum {
     OS_TOO_MANY_THREADS_ERR = -4
 };
 
+typedef enum {
+    MATCH_CONDITION = 0,
+    TIMEOUT_CONDITION = 1
+} WaitResult;
+
 typedef struct{
     union {
-        uint32_t arg1;
+        uint32_t arg0;
         uint32_t tim;
+    };
+    union {
+        uint32_t arg1;
         void* ptr;
         uint32_t* uPtr;
     };
@@ -51,7 +60,11 @@ void yield();
 void osDelay(uint32_t d);
 void osTim(uint32_t d);
 void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match);
+WaitResult osWaitMatchOrDelay(uint32_t* p, uint32_t mask, uint32_t match, uint32_t d);
 void osThreadRun(uint8_t t);
 void osThreadStop(uint8_t t);
+
 void mutexLock(mutex_t* m);
+WaitResult mutexLockWithTimeout(mutex_t* m, uint32_t timeout);
+int mutexIsLocked(mutex_t* m);
 void mutexUnlock(mutex_t* m);

@@ -80,6 +80,11 @@ void osStart(void){
                     if((*tinyThread[i].uPtr & tinyThread[i].mask) == tinyThread[i].match)
                         goToThread(i);
                     break;
+                case OS_WAIT_MATCH_OR_DELAY:
+                    if((*tinyThread[i].uPtr & tinyThread[i].mask) == tinyThread[i].match
+                    || (int32_t)(tick - tinyThread[i].tim) > 0)
+                        goToThread(i);
+
                 default: break;
             }
         }
@@ -131,6 +136,23 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
     tinyThread[curThread].state = OS_RUN;
 }
 
+WaitResult osWaitMatchOrDelay(uint32_t* p, uint32_t mask, uint32_t match, uint32_t d){
+    tinyThread[curThread].state = OS_WAIT_MATCH_OR_DELAY;
+    tinyThread[curThread].uPtr = p;
+    tinyThread[curThread].mask = mask;
+    tinyThread[curThread].match = match & mask;
+    tinyThread[curThread].tim = tick + d;
+    yield();
+    tinyThread[curThread].state = OS_RUN;
+
+    // Проверяем причину выхода
+    if ((*p & mask) == (match & mask)) {
+        return MATCH_CONDITION;
+    } else {
+        return TIMEOUT_CONDITION;
+    }
+}
+
 void osThreadRun(uint8_t t){
     if(t >= MAX_THREADS) return;
     if(tinyThread[t].state == OS_EMPTY) return;
@@ -152,6 +174,39 @@ void mutexLock(mutex_t* m) {
     }
     *m = 1;
     __enable_irq();
+}
+
+WaitResult mutexLockWithTimeout(mutex_t* m, uint32_t timeout) {
+    __disable_irq();
+    if (*m) {
+        // Мьютекс свободен, захватываем его
+        *m = 1;
+        __enable_irq();
+        return MATCH_CONDITION;
+    }
+    __enable_irq();
+
+    // Мьютекс занят, ждем его освобождения с таймаутом
+    WaitResult result = osWaitMatchOrDelay((uint32_t*)m, 1, 0, timeout);
+
+    if (result == MATCH_CONDITION) {
+        // Мьютекс освободился, захватываем его
+        __disable_irq();
+        *m = 1;
+        __enable_irq();
+    }
+
+    return result;
+}
+
+int mutexIsLocked(mutex_t* m){
+    int isLocked = 0;
+    __disable_irq();
+    if (*m) {
+        isLocked = 1;
+    }
+    __enable_irq();
+    return isLocked;
 }
 
 void mutexUnlock(mutex_t* m){
