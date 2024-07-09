@@ -131,11 +131,15 @@ void osWaitMatch(uint32_t* p, uint32_t mask, uint32_t match){
     tinyThread[curThread].state = OS_RUN;
 }
 
-void osRun(uint8_t t){
+void osThreadRun(uint8_t t){
+    if(t >= MAX_THREADS) return;
+    if(tinyThread[t].state == OS_EMPTY) return;
     tinyThread[t].state = OS_RUN;
 }
 
-void osStop(uint8_t t){
+void osThreadStop(uint8_t t){
+    if(t >= MAX_THREADS) return;
+    if(tinyThread[t].state == OS_EMPTY) return;
     tinyThread[t].state = OS_SLEEP;
 }
 
