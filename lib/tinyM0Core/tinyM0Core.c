@@ -75,7 +75,7 @@ void osStart(void){
                     goToThread(i);
                     break;
                 case OS_DELAY:
-                    if((int32_t)(tick - tinyThread[i].tim) > 0)
+                    if((int32_t)(tick - tinyThread[i].tim) >= 0)
                         goToThread(i);
                     break;
                 case OS_WAIT_MATCH:
@@ -84,7 +84,7 @@ void osStart(void){
                     break;
                 case OS_WAIT_MATCH_OR_DELAY:
                     if((*tinyThread[i].uPtr & tinyThread[i].mask) == tinyThread[i].match
-                    || (int32_t)(tick - tinyThread[i].tim) > 0)
+                    || (int32_t)(tick - tinyThread[i].tim) >= 0)
                         goToThread(i);
 
                 default: break;
